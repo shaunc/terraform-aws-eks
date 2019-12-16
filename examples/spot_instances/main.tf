@@ -57,7 +57,7 @@ module "vpc" {
 
   name                 = "test-vpc-spot"
   cidr                 = "10.0.0.0/16"
-  azs                  = data.aws_availability_zones.available.names
+  azs                  = slice(data.aws_availability_zones.available.names, 0, 3)
   public_subnets       = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
   enable_dns_hostnames = true
 
@@ -74,13 +74,25 @@ module "eks" {
 
   worker_groups_launch_template = [
     {
+      name                 = "sys"
+      instance_type        = "t3a.small"
+      asg_desired_capacity = 3
+      public_ip            = true
+    },
+    {
       name                    = "spot-1"
-      override_instance_types = ["m5.large", "m5a.large", "m5d.large", "m5ad.large"]
-      spot_instance_pools     = 4
-      asg_max_size            = 5
-      asg_desired_capacity    = 5
+      override_instance_types = [
+        "t2.medium", "t2.small", "t3.small", "t3a.small", 
+        "m5a.large", "m4.large", "c5.large", "c4.large"]
+      # override_instance_types = ["m5.large", "m5a.large", "m5d.large", "m5ad.large"]
+
+      # spot_instance_pools     = 4
+      asg_max_size            = 6
+      asg_desired_capacity    = 0
       kubelet_extra_args      = "--node-labels=kubernetes.io/lifecycle=spot"
       public_ip               = true
+      autoscaling_enabled     = true
+      protect_from_scale_in   = true
     },
   ]
 }
